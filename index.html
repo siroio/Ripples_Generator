@@ -1,75 +1,17 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17233c">
-  <title>Ripple Brush Maker</title>
-  <link rel="stylesheet" href="./style.css?v=3">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#17233c"><title>Ripple Brush Maker</title><link rel="stylesheet" href="./style.css?v=4">
 </head>
 <body>
-  <main class="workbench">
-    <header class="masthead">
-      <div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div>
-        <p class="kicker">波紋ブラシメーカー</p>
-        <h1>Ripple Brush Maker</h1>
-        <p class="intro">波紋源を配置して、透明なブラシ先端をつくります。</p>
-      </div>
-    </header>
-
-    <div class="desk">
-      <form id="controls" class="control-panel">
-        <section aria-labelledby="settings-title">
-          <div class="panel-heading"><h2 id="settings-title">全体設定</h2></div>
-          <p class="panel-note">波紋源が1つなら真円。複数なら重なりを滑らかに一つの流れへつなぎます。</p>
-          <label class="field">出力サイズ
-            <select id="size"><option value="512">512 × 512 px</option><option value="1024" selected>1024 × 1024 px</option><option value="2048">2048 × 2048 px</option></select>
-          </label>
-          <label class="field color-field">線の色
-            <span class="color-control"><input id="color" type="color" value="#17233c"><output for="color">#17233C</output></span>
-          </label>
-          <label class="field">不透明度<span class="range-line"><input id="opacity" type="range" min=".05" max="1" step=".05" value="1"><output data-output-for="opacity">100%</output></span></label>
-          <label class="field">合流のなめらかさ<span class="range-line"><input id="smoothness" type="range" min="1" max="200" step="1" value="64"><output data-output-for="smoothness">64px</output></span><small class="field-help">複数時の合流のなめらかさ</small></label>
-          <label class="field">線幅<span class="range-line"><input id="lineWidth" type="range" min="1" max="64" step="1" value="10"><output data-output-for="lineWidth">10px</output></span></label>
-        </section>
-
-        <section class="texture-section" aria-labelledby="texture-title">
-          <div class="panel-heading"><h2 id="texture-title">先端画像</h2></div>
-          <p class="panel-note">画像を接線方向にスタンプします。画像未指定時は丸線。</p>
-          <label class="field file-field" for="brushTexture">ブラシ先端画像<input id="brushTexture" type="file" accept="image/png,image/webp,image/jpeg"></label>
-          <button id="clearTexture" type="button" class="button secondary" disabled>先端画像を外す</button>
-          <label class="field">ブラシサイズ<span class="range-line"><input id="brushSize" type="range" min="4" max="160" step="1" value="20"><output data-output-for="brushSize">20px</output></span></label>
-          <label class="field">スタンプ間隔<span class="range-line"><input id="stampSpacing" type="range" min="1" max="80" step="1" value="8"><output data-output-for="stampSpacing">8px</output></span></label>
-        </section>
-
-        <section aria-labelledby="sources-title">
-          <div class="panel-heading"><h2 id="sources-title">波紋源</h2></div>
-          <div id="sources" class="sources"></div>
-          <button id="addSource" type="button" class="button secondary">波紋源を追加</button>
-        </section>
-        <button id="download" type="button" class="button primary">透過PNGを保存</button>
-      </form>
-
-      <section class="preview-area" aria-labelledby="preview-title">
-        <div class="preview-topline"><div><p class="kicker">プレビュー</p><h2 id="preview-title">作業面</h2></div><span class="size-badge">1024 px</span></div>
-        <div class="canvas-wrap"><canvas id="preview" width="1024" height="1024" aria-label="波紋ブラシのプレビュー"></canvas></div>
-        <div class="preview-footer"><span>透明部分は市松模様で表示</span></div>
-        <p id="status" class="status" aria-live="polite">準備完了</p>
-      </section>
-    </div>
-  </main>
-
-  <template id="sourceTemplate">
-    <article class="source" data-source>
-      <div class="source-title"><strong>波紋源 <span data-source-number>01</span></strong><button type="button" class="remove" data-action="remove">削除</button></div>
-      <label class="field compact">中心 X<span class="range-line"><input data-field="centerX" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label>
-      <label class="field compact">中心 Y<span class="range-line"><input data-field="centerY" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label>
-      <label class="field compact">波紋の本数<span class="range-line"><input data-field="rings" type="range" min="1" max="24" step="1" value="6"><output>6本</output></span></label>
-      <label class="field compact">波紋の間隔<span class="range-line"><input data-field="spacing" type="range" min="8" max="160" step="1" value="48"><output>48px</output></span></label>
-      <label class="field compact">開始半径<span class="range-line"><input data-field="startRadius" type="range" min="0" max="300" step="1" value="24"><output>24px</output></span></label>
-    </article>
-  </template>
-  <script type="module" src="./app.js?v=3"></script>
+  <header class="toolbar"><div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><small>波紋ブラシメーカー</small><strong>Ripple Brush Maker</strong></span></div><div class="toolbar-actions"><label for="scale">出力倍率<select id="scale"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option></select></label><button id="download" type="button" class="button primary">透過PNGを保存</button></div></header>
+  <main id="previewStage" class="preview-stage"><div id="canvasWrap" class="canvas-wrap"><canvas id="preview" width="768" height="768" aria-label="波紋ブラシのプレビュー"></canvas><div id="sourceHandles" class="source-handles" aria-label="波紋源のハンドル"></div></div><p class="preview-hint">透明部分は市松模様で表示</p><p id="status" class="status" aria-live="polite">準備完了</p></main>
+  <form id="controls" class="control-panel" aria-label="波紋ブラシ設定"><div id="panelDrag" class="panel-drag"><span>設定</span><button id="togglePanel" type="button" aria-expanded="true" aria-controls="panelBody" aria-label="設定パネルを折りたたむ">−</button></div><div id="panelBody" class="panel-body">
+    <section aria-labelledby="settings-title"><div class="panel-heading"><h2 id="settings-title">全体設定</h2></div><label class="field color-field">線の色<span class="color-control"><input id="color" type="color" value="#17233c"><output for="color">#17233C</output></span></label><label class="field">不透明度<span class="range-line"><input id="opacity" type="range" min=".05" max="1" step=".05" value="1"><output data-output-for="opacity">100%</output></span></label><label class="field">合流のなめらかさ<span class="range-line"><input id="smoothness" type="range" min="1" max="200" step="1" value="64"><output data-output-for="smoothness">64px</output></span><small class="field-help">複数時の合流のなめらかさ</small></label><label class="field">線幅<span class="range-line"><input id="lineWidth" type="range" min="1" max="64" step="1" value="10"><output data-output-for="lineWidth">10px</output></span></label></section>
+    <section class="texture-section" aria-labelledby="texture-title"><div class="panel-heading"><h2 id="texture-title">先端画像</h2></div><label class="field file-field" for="brushTexture">ブラシ先端画像<input id="brushTexture" type="file" accept="image/png,image/webp,image/jpeg"></label><button id="clearTexture" type="button" class="button secondary" disabled>先端画像を外す</button><label class="field">ブラシサイズ<span class="range-line"><input id="brushSize" type="range" min="4" max="160" step="1" value="20"><output data-output-for="brushSize">20px</output></span></label><label class="field">スタンプ間隔<span class="range-line"><input id="stampSpacing" type="range" min="1" max="80" step="1" value="8"><output data-output-for="stampSpacing">8px</output></span></label></section>
+    <section aria-labelledby="sources-title"><div class="panel-heading"><h2 id="sources-title">波紋源</h2></div><div id="sourceTabs" class="source-tabs" role="tablist" aria-label="波紋源を選択"></div><div id="sources" class="sources"></div><button id="addSource" type="button" class="button secondary">＋ 波紋源を追加</button></section>
+  </div></form>
+  <template id="sourceTemplate"><article class="source" data-source role="tabpanel"><div class="source-title"><strong>波紋源 <span data-source-number>01</span></strong><button type="button" class="remove" data-action="remove">削除</button></div><label class="field compact">中心 X<span class="range-line"><input data-field="centerX" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label><label class="field compact">中心 Y<span class="range-line"><input data-field="centerY" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label><label class="field compact">波紋の本数<span class="range-line"><input data-field="rings" type="range" min="1" max="24" step="1" value="6"><output>6本</output></span></label><label class="field compact">波紋の間隔<span class="range-line"><input data-field="spacing" type="range" min="8" max="160" step="1" value="48"><output>48px</output></span></label><label class="field compact">開始半径<span class="range-line"><input data-field="startRadius" type="range" min="0" max="300" step="1" value="24"><output>24px</output></span></label></article></template>
+  <script type="module" src="./app.js?v=4"></script>
 </body>
 </html>

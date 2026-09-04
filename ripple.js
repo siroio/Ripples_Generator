@@ -38,6 +38,40 @@ function normalizedSources(sources, options) {
     }));
 }
 
+export function getRippleBounds(width, height, config = {}, sources = [], hasBrush = false) {
+  const options = settings(width, height, config);
+  const centers = normalizedSources(sources, options);
+  if (!centers.length) return null;
+  const expansion = (centers.length > 1 ? options.smoothness * Math.log(centers.length) : 0)
+    + (hasBrush
+      ? Math.max(0.01, finite(config.brushSize, 16)) * Math.SQRT2 / 2
+      : Math.max(0, finite(config.lineWidth, 1)) / 2)
+    + 2;
+  const extrema = centers.reduce((bounds, source) => {
+    const radius = source.startRadius + (source.rings - 1) * source.spacing + expansion;
+    return {
+      minX: Math.min(bounds.minX, source.x - radius),
+      minY: Math.min(bounds.minY, source.y - radius),
+      maxX: Math.max(bounds.maxX, source.x + radius),
+      maxY: Math.max(bounds.maxY, source.y + radius),
+    };
+  }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+  return { ...extrema, width: extrema.maxX - extrema.minX, height: extrema.maxY - extrema.minY };
+}
+
+export function findAlphaBounds(data, width, height) {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  const columns = Math.floor(width), rows = Math.floor(height);
+  if (!columns || !rows) return null;
+  let minX = columns, minY = rows, maxX = -1, maxY = -1;
+  for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) {
+    if ((data?.[4 * (y * columns + x) + 3] ?? 0) === 0) continue;
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  }
+  return maxX < 0 ? null : { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+}
+
 function circles(options, source) {
   return Array.from({ length: options.rings }, (_, ring) => {
     const radius = options.startRadius + ring * options.spacing;

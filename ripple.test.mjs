@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRippleContours, drawRipples, rippleDistance, stampContour } from './ripple.js';
+import {
+  createRippleContours, drawRipples, findAlphaBounds, getRippleBounds, rippleDistance, stampContour,
+} from './ripple.js';
 
 test('a single source distance is Euclidean', () => {
   assert.equal(rippleDistance(3, 4, [{ x: 0, y: 0 }], 10), 5);
@@ -99,4 +101,36 @@ test('brush stamps keep their spacing across short contour segments', () => {
   ctx.translate = (x, y) => positions.push([x, y]);
   stampContour(ctx, [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 7, y: 0 }, { x: 11, y: 0 }, { x: 15, y: 0 }], {}, 2, 5);
   assert.deepEqual(positions, [[0, 0], [5, 0], [10, 0], [15, 0]]);
+});
+
+test('single-source bounds include the outer ring and stroke', () => {
+  assert.deepEqual(getRippleBounds(100, 80, { startRadius: 8, spacing: 13, rings: 3, lineWidth: 6 }, [
+    { centerX: 0.5, centerY: 0.5 },
+  ]), { minX: 11, minY: 1, maxX: 89, maxY: 79, width: 78, height: 78 });
+});
+
+test('multi-source bounds include smooth expansion and rotated brush extent', () => {
+  const bounds = getRippleBounds(200, 100, { startRadius: 10, spacing: 20, rings: 2, smoothness: 6, brushSize: 14 }, [
+    { centerX: 0.25, centerY: 0.5 }, { centerX: 0.75, centerY: 0.5 },
+  ], true);
+  const expansion = 6 * Math.log(2) + 14 * Math.SQRT2 / 2 + 2;
+  assert.equal(bounds.minX, 50 - (30 + expansion));
+  assert.equal(bounds.maxX, 150 + (30 + expansion));
+  assert.equal(bounds.minY, 50 - (30 + expansion));
+  assert.equal(bounds.maxY, 50 + (30 + expansion));
+});
+
+test('invalid sources produce no scene bounds', () => {
+  assert.equal(getRippleBounds(100, 100, {}, [{ centerX: NaN, centerY: 0.5 }]), null);
+});
+
+test('alpha bounds return the exact nontransparent rectangle', () => {
+  const data = new Uint8ClampedArray(6 * 5 * 4);
+  for (let y = 1; y <= 3; y += 1) for (let x = 2; x <= 4; x += 1) data[(y * 6 + x) * 4 + 3] = 255;
+  assert.deepEqual(findAlphaBounds(data, 6, 5), { x: 2, y: 1, width: 3, height: 3 });
+});
+
+test('fully transparent or zero-sized images have no alpha bounds', () => {
+  assert.equal(findAlphaBounds(new Uint8ClampedArray(16), 2, 2), null);
+  assert.equal(findAlphaBounds([], 0, 2), null);
 });
