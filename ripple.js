@@ -25,9 +25,17 @@ function settings(width, height, config) {
   };
 }
 
-function normalizedSources(sources, width, height) {
+function normalizedSources(sources, options) {
   return (sources ?? []).filter((source) => Number.isFinite(source?.centerX) && Number.isFinite(source?.centerY))
-    .map((source) => ({ x: source.centerX * width, y: source.centerY * height }));
+    .map((source) => ({
+      x: source.centerX * options.width,
+      y: source.centerY * options.height,
+      rings: Number.isFinite(source.rings) && source.rings >= 1
+        ? Math.round(Math.min(64, source.rings)) : options.rings,
+      spacing: Number.isFinite(source.spacing) && source.spacing >= 1 ? source.spacing : options.spacing,
+      startRadius: Number.isFinite(source.startRadius) && source.startRadius >= 0
+        ? source.startRadius : options.startRadius,
+    }));
 }
 
 function circles(options, source) {
@@ -39,6 +47,10 @@ function circles(options, source) {
       return { x: source.x + Math.cos(angle) * radius, y: source.y + Math.sin(angle) * radius };
     });
   });
+}
+
+function circle(source, ring) {
+  return circles({ ...source, rings: 1, startRadius: source.startRadius + ring * source.spacing }, source)[0];
 }
 
 function interpolate(a, b, level) {
@@ -106,11 +118,84 @@ function contourLevels(grid, options) {
   return segments.flatMap(joinSegments);
 }
 
+function interpolateZero(ax, ay, av, bx, by, bv) {
+  const t = -av / (bv - av);
+  return { x: ax + (bx - ax) * t, y: ay + (by - ay) * t };
+}
+
+function zeroContours(values, columns, rows, options) {
+  const segments = [];
+  for (let y = 0; y < rows - 1; y += 1) for (let x = 0; x < columns - 1; x += 1) {
+    const top = y * columns + x;
+    const bottom = top + columns;
+    const v0 = values[top], v1 = values[top + 1], v2 = values[bottom + 1], v3 = values[bottom];
+    const mask = (v0 < 0) | ((v1 < 0) << 1) | ((v2 < 0) << 2) | ((v3 < 0) << 3);
+    if (mask === 0 || mask === 15) continue;
+    const x0 = x * options.gridSize, x1 = Math.min(options.width, x0 + options.gridSize);
+    const y0 = y * options.gridSize, y1 = Math.min(options.height, y0 + options.gridSize);
+    const points = [];
+    if ((v0 < 0) !== (v1 < 0)) points.push(interpolateZero(x0, y0, v0, x1, y0, v1));
+    if ((v1 < 0) !== (v2 < 0)) points.push(interpolateZero(x1, y0, v1, x1, y1, v2));
+    if ((v2 < 0) !== (v3 < 0)) points.push(interpolateZero(x1, y1, v2, x0, y1, v3));
+    if ((v3 < 0) !== (v0 < 0)) points.push(interpolateZero(x0, y1, v3, x0, y0, v0));
+    if (points.length === 2) segments.push(points);
+    if (points.length === 4) {
+      const pairs = (((v0 + v1 + v2 + v3) / 4 < 0) === (v0 < 0))
+        ? [[0, 1], [2, 3]] : [[0, 3], [1, 2]];
+      pairs.forEach(([a, b]) => segments.push([points[a], points[b]]));
+    }
+  }
+  return joinSegments(segments);
+}
+
 export function createRippleContours(width, height, config = {}, sources = []) {
   const options = settings(width, height, config);
-  const centers = normalizedSources(sources, options.width, options.height);
+  const centers = normalizedSources(sources, options);
   if (!centers.length) return [];
-  if (centers.length === 1) return circles(options, centers[0]);
+  if (centers.length === 1) return circles(centers[0], centers[0]);
+  const shared = centers.every((source) => source.rings === centers[0].rings
+    && source.spacing === centers[0].spacing && source.startRadius === centers[0].startRadius);
+  if (!shared) {
+    const contours = [];
+    const columns = Math.ceil(options.width / options.gridSize) + 1;
+    const rows = Math.ceil(options.height / options.gridSize) + 1;
+    const xs = Float64Array.from({ length: columns }, (_, x) => Math.min(options.width, x * options.gridSize));
+    const ys = Float64Array.from({ length: rows }, (_, y) => Math.min(options.height, y * options.gridSize));
+    const distances = centers.map((source) => {
+      const result = new Float64Array(columns * rows);
+      for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) {
+        result[y * columns + x] = Math.hypot(xs[x] - source.x, ys[y] - source.y);
+      }
+      return result;
+    });
+    const values = new Float64Array(columns * rows);
+    for (let ring = 0; ring < Math.max(...centers.map((source) => source.rings)); ring += 1) {
+      const active = centers.map((source, index) => ring < source.rings ? {
+        distances: distances[index], radius: source.startRadius + ring * source.spacing, source,
+      } : null).filter(Boolean);
+      if (active.length === 1) {
+        contours.push(circle(active[0].source, ring));
+        continue;
+      }
+      if (active.length === 2) {
+        const [a, b] = active;
+        for (let i = 0; i < values.length; i += 1) {
+          const av = a.distances[i] - a.radius, bv = b.distances[i] - b.radius;
+          values[i] = Math.min(av, bv) - options.smoothness
+            * Math.log1p(Math.exp(-Math.abs(av - bv) / options.smoothness));
+        }
+      } else for (let i = 0; i < values.length; i += 1) {
+        let m = Infinity;
+        for (const source of active) m = Math.min(m, source.distances[i] - source.radius);
+        let sum = 0;
+        for (const source of active) sum += Math.exp(-(source.distances[i] - source.radius - m) / options.smoothness);
+        values[i] = m - options.smoothness * Math.log(sum);
+      }
+      contours.push(...zeroContours(values, columns, rows, options));
+    }
+    return contours;
+  }
+  const sharedOptions = { ...options, ...centers[0] };
   const columns = Math.ceil(options.width / options.gridSize) + 1;
   const rows = Math.ceil(options.height / options.gridSize) + 1;
   const values = Array.from({ length: rows }, (_, y) => Array.from({ length: columns }, (_, x) => {
@@ -119,7 +204,7 @@ export function createRippleContours(width, height, config = {}, sources = []) {
     return { x: px, y: py, value: rippleDistance(px, py, centers, options.smoothness) };
   }));
   const grid = { columns, rows, at: (x, y) => values[y][x] };
-  return contourLevels(grid, options);
+  return contourLevels(grid, sharedOptions);
 }
 
 export function stampContour(ctx, contour, brush, size, spacing) {

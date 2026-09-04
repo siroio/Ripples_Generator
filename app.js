@@ -1,8 +1,8 @@
-import { drawRipples } from './ripple.js';
+import { drawRipples } from './ripple.js?v=3';
 
 const units = {
   lineWidth: ' px', spacing: ' px', startRadius: ' px', smoothness: ' px',
-  brushSize: ' px', stampSpacing: ' px', ringCount: ' 本', centerX: '%', centerY: '%',
+  brushSize: ' px', stampSpacing: ' px', rings: ' 本', centerX: '%', centerY: '%',
 };
 const textureTypes = new Set(['image/png', 'image/webp', 'image/jpeg']);
 
@@ -22,7 +22,7 @@ function start() {
     return;
   }
 
-  const sources = [{ centerX: 50, centerY: 50 }];
+  const sources = [{ centerX: 50, centerY: 50, rings: 6, spacing: 48, startRadius: 24 }];
   let image = null;
   let imageUrl = null;
   let pendingUrl = null;
@@ -59,8 +59,7 @@ function start() {
     return {
       width: size, height: size, lineWidth: number(input('lineWidth'), 1),
       color: input('color')?.value || '#000000', opacity: number(input('opacity'), 1),
-      spacing: number(input('spacing'), 1), startRadius: number(input('startRadius'), 0),
-      rings: number(input('ringCount'), 1), smoothness: number(input('smoothness'), 1),
+      smoothness: number(input('smoothness'), 1),
       gridSize: Math.max(1, Math.min(4, size / 512)), brushSize: number(input('brushSize'), 1),
       stampSpacing: number(input('stampSpacing'), 1),
     };
@@ -91,7 +90,9 @@ function start() {
     const badge = document.querySelector('.size-badge');
     if (badge) badge.textContent = `${current.width} px`;
     if (image && (!brushCanvas || brushCanvas.width !== Math.round(current.brushSize))) tintBrush(current);
-    drawRipples(ctx, current, sources.map(({ centerX, centerY }) => ({ centerX: centerX / 100, centerY: centerY / 100 })), brushCanvas);
+    drawRipples(ctx, current, sources.map(({ centerX, centerY, rings, spacing, startRadius }) => ({
+      centerX: centerX / 100, centerY: centerY / 100, rings, spacing, startRadius,
+    })), brushCanvas);
   }
 
   function requestRedraw() {
@@ -108,7 +109,7 @@ function start() {
       if (label) label.textContent = String(index + 1).padStart(2, '0');
       root.querySelectorAll('[data-field]').forEach((field) => {
         field.value = source[field.dataset.field];
-        field.setAttribute('aria-label', `波紋 ${index + 1} の中心 ${field.dataset.field === 'centerX' ? 'X' : 'Y'}`);
+        field.setAttribute('aria-label', `波紋 ${index + 1} の${{ centerX: '中心 X', centerY: '中心 Y', rings: '本数', spacing: '間隔', startRadius: '開始半径' }[field.dataset.field]}`);
         showOutput(field);
       });
       const remove = root.querySelector('[data-action="remove"]');
@@ -123,10 +124,12 @@ function start() {
   function addSource() {
     const positions = [[65, 50], [35, 50], [50, 65], [50, 35]];
     const position = positions[sources.length - 1];
-    if (position) sources.push({ centerX: position[0], centerY: position[1] });
+    const previous = sources.at(-1);
+    const settings = ({ rings, spacing, startRadius }) => ({ rings, spacing, startRadius });
+    if (position) sources.push({ centerX: position[0], centerY: position[1], ...settings(previous) });
     else {
       const angle = (sources.length - 5) * Math.PI / 4 - Math.PI / 2;
-      sources.push({ centerX: Math.round(50 + Math.cos(angle) * 18), centerY: Math.round(50 + Math.sin(angle) * 18) });
+      sources.push({ centerX: Math.round(50 + Math.cos(angle) * 18), centerY: Math.round(50 + Math.sin(angle) * 18), ...settings(previous) });
     }
     renderSources();
     requestRedraw();

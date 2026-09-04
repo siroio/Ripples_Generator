@@ -28,6 +28,43 @@ test('multiple source contours have finite, continuous points', () => {
   assert.ok(contours.every((contour) => contour.slice(1).every((point, index) => Math.hypot(point.x - contour[index].x, point.y - contour[index].y) <= gridSize * 3)));
 });
 
+test('sources can use different start radii, spacing, and ring counts', () => {
+  const contours = createRippleContours(200, 200, { startRadius: 99, spacing: 99, rings: 9, smoothness: 6, gridSize: 1 }, [
+    { centerX: 0.38, centerY: 0.5, startRadius: 28, spacing: 11, rings: 3 },
+    { centerX: 0.62, centerY: 0.5, startRadius: 35, spacing: 19, rings: 2 },
+  ]);
+  const xBounds = contours.map((contour) => [
+    Math.min(...contour.map(({ x }) => x)), Math.max(...contour.map(({ x }) => x)),
+  ]);
+  assert.equal(contours.length, 3);
+  assert.ok(contours.every((contour) => contour.length > 100));
+  assert.deepEqual(xBounds.map((bounds) => bounds.map(Math.round)), [[48, 159], [37, 178], [26, 126]]);
+});
+
+test('matching source settings override conflicting config in the shared fast path', () => {
+  const sourceSettings = { startRadius: 18, spacing: 9, rings: 2 };
+  const centers = [{ centerX: 0.35, centerY: 0.5 }, { centerX: 0.65, centerY: 0.5 }];
+  const shared = createRippleContours(200, 160, { startRadius: 99, spacing: 99, rings: 9, smoothness: 8, gridSize: 2 },
+    centers.map((center) => ({ ...center, ...sourceSettings })));
+  const legacy = createRippleContours(200, 160, { ...sourceSettings, smoothness: 8, gridSize: 2 }, centers);
+  assert.deepEqual(shared, legacy);
+});
+
+test('missing and invalid source settings fall back to the config', () => {
+  const config = { startRadius: 12, spacing: 13, rings: 3, smoothness: 8, gridSize: 2 };
+  const explicit = [
+    { centerX: 0.25, centerY: 0.5, ...config },
+    { centerX: 0.5, centerY: 0.5, ...config },
+    { centerX: 0.75, centerY: 0.5, startRadius: 18, spacing: 9, rings: 2 },
+  ];
+  const fallback = [
+    { centerX: 0.25, centerY: 0.5, startRadius: -1, spacing: 0, rings: 0 },
+    { centerX: 0.5, centerY: 0.5 },
+    { centerX: 0.75, centerY: 0.5, startRadius: 18, spacing: 9, rings: 2 },
+  ];
+  assert.deepEqual(createRippleContours(160, 120, config, fallback), createRippleContours(160, 120, config, explicit));
+});
+
 test('open multi-source contours are joined instead of split into tiny fragments', () => {
   const contours = createRippleContours(512, 512, { startRadius: 216, spacing: 48, rings: 1, smoothness: 64, gridSize: 1 }, [
     { centerX: 0.35, centerY: 0.5 }, { centerX: 0.65, centerY: 0.5 },

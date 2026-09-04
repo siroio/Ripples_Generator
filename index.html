@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17233c">
   <title>Ripple Brush Maker</title>
-  <link rel="stylesheet" href="./style.css?v=2">
+  <link rel="stylesheet" href="./style.css?v=3">
 </head>
 <body>
   <main class="workbench">
@@ -30,9 +30,6 @@
             <span class="color-control"><input id="color" type="color" value="#17233c"><output for="color">#17233C</output></span>
           </label>
           <label class="field">不透明度<span class="range-line"><input id="opacity" type="range" min=".05" max="1" step=".05" value="1"><output data-output-for="opacity">100%</output></span></label>
-          <label class="field">波紋の本数<span class="range-line"><input id="ringCount" type="range" min="1" max="24" step="1" value="6"><output data-output-for="ringCount">6本</output></span></label>
-          <label class="field">波紋の間隔<span class="range-line"><input id="spacing" type="range" min="8" max="160" step="1" value="48"><output data-output-for="spacing">48px</output></span></label>
-          <label class="field">開始半径<span class="range-line"><input id="startRadius" type="range" min="0" max="300" step="1" value="24"><output data-output-for="startRadius">24px</output></span></label>
           <label class="field">合流のなめらかさ<span class="range-line"><input id="smoothness" type="range" min="1" max="200" step="1" value="64"><output data-output-for="smoothness">64px</output></span><small class="field-help">複数時の合流のなめらかさ</small></label>
           <label class="field">線幅<span class="range-line"><input id="lineWidth" type="range" min="1" max="64" step="1" value="10"><output data-output-for="lineWidth">10px</output></span></label>
         </section>
@@ -68,8 +65,11 @@
       <div class="source-title"><strong>波紋源 <span data-source-number>01</span></strong><button type="button" class="remove" data-action="remove">削除</button></div>
       <label class="field compact">中心 X<span class="range-line"><input data-field="centerX" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label>
       <label class="field compact">中心 Y<span class="range-line"><input data-field="centerY" type="range" min="0" max="100" step="1" value="50"><output>50%</output></span></label>
+      <label class="field compact">波紋の本数<span class="range-line"><input data-field="rings" type="range" min="1" max="24" step="1" value="6"><output>6本</output></span></label>
+      <label class="field compact">波紋の間隔<span class="range-line"><input data-field="spacing" type="range" min="8" max="160" step="1" value="48"><output>48px</output></span></label>
+      <label class="field compact">開始半径<span class="range-line"><input data-field="startRadius" type="range" min="0" max="300" step="1" value="24"><output>24px</output></span></label>
     </article>
   </template>
-  <script type="module" src="./app.js?v=2"></script>
+  <script type="module" src="./app.js?v=3"></script>
 </body>
 </html>
